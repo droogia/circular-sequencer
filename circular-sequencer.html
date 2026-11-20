@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Circular Sequencer v1.2</title>
+<title>Circular Sequencer v1.3</title>
 <style>
 :root{--bg:#0e1013;--panel:#161a20;--panel2:#1f252e;--line:#2c333e;--txt:#e6e9ee;--dim:#9aa4b2;--acc:#4cc9f0}
 *{box-sizing:border-box}
@@ -59,11 +59,13 @@ h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)
 .tools input{width:58px}
 .tools button{font-size:14px;padding:3px 9px}
 .unithead{display:flex;align-items:center;gap:6px;margin:0 0 8px}
-.unithead h2{margin:0;color:var(--acc);font-size:15px}
+.unithead h2{white-space:nowrap;margin:0;color:var(--acc);font-size:15px}
 .unithead .sp{flex:1}
+#editor.drums .syn{display:none}
+.unithead select{font-size:14px;padding:2px 4px}
 .unithead .rc{margin-left:14px;font-size:14px;color:var(--dim);display:flex;align-items:center;gap:6px}
 .unithead .rc input{width:58px}
-.unithead button{font-size:14px;padding:3px 9px}
+.unithead button{font-size:14px;padding:3px 9px;white-space:nowrap}
 aside[hidden]{display:none}
 .hint{font-size:13.5px;color:var(--dim);line-height:1.55}
 .hint kbd{background:#252b34;border:1px solid var(--line);border-radius:4px;padding:0 5px;font:13px ui-monospace,Consolas,monospace;color:var(--txt)}
@@ -71,7 +73,7 @@ aside[hidden]{display:none}
 </head>
 <body>
 <header>
-  <h1>CIRCULAR SEQUENCER <span style="color:var(--dim);font-weight:500;letter-spacing:.04em">v1.2</span></h1>
+  <h1>CIRCULAR SEQUENCER <span style="color:var(--dim);font-weight:500;letter-spacing:.04em">v1.3</span></h1>
   <button id="play" class="play">▶ Play</button>
   <div class="grp">BPM <input type="number" id="bpm" min="20" max="300" step="1"><input type="range" id="bpmR" min="20" max="300" step="1"></div>
   <div class="grp">Master <input type="range" id="master" min="0" max="1" step="0.01"></div>
@@ -94,28 +96,29 @@ aside[hidden]{display:none}
     <h2>Step editor</h2>
     <section id="editor">
       <div class="edhead"><span id="edTitle"></span><span id="edChord"></span></div>
-      <div class="kbrow"><button id="kbDown" title="Keyboard octave down">◀</button><div id="kb" class="kb"></div><button id="kbUp" title="Keyboard octave up">▶</button></div>
-      <div class="presets" id="presets"></div>
+      <div class="kbrow syn"><button id="kbDown" title="Keyboard octave down">◀</button><div id="kb" class="kb"></div><button id="kbUp" title="Keyboard octave up">▶</button></div>
+      <div class="presets syn" id="presets"></div>
       <div class="row">
-        <button id="invDown">Inv ↓</button><button id="invUp">Inv ↑</button>
-        <button id="trDown">−1 st</button><button id="trUp">+1 st</button>
-        <button id="octDown">−8va</button><button id="octUp">+8va</button>
+        <button id="invDown" class="syn">Inv ↓</button><button id="invUp" class="syn">Inv ↑</button>
+        <button id="trDown" class="syn">−1 st</button><button id="trUp" class="syn">+1 st</button>
+        <button id="octDown" class="syn">−8va</button><button id="octUp" class="syn">+8va</button>
         <button id="edClear">Clear step</button>
       </div>
       <div class="sl"><span>Velocity</span><input type="range" id="edVel" min="1" max="127" step="1"><span id="edVelV"></span></div>
-      <div class="sl"><span>Gate (steps)</span><input type="range" id="edDur" min="0.1" max="16" step="0.1"><span id="edDurV"></span></div>
+      <div class="sl syn"><span>Gate (steps)</span><input type="range" id="edDur" min="0.1" max="16" step="0.1"><span id="edDurV"></span></div>
       <div class="sl"><span>Probability</span><input type="range" id="edProb" min="0" max="100" step="1"><span id="edProbV"></span></div>
     </section>
     <div class="unithead"><h2 id="unitTitle">Unit</h2>
+      <select id="uType" title="Unit type"><option value="synth">Synth</option><option value="drums">Drums</option></select>
       <label class="rc">Rings <input type="number" id="uRings" min="1" max="8" step="1"></label><span class="sp"></span>
       <button id="uMute" title="Mute unit">M</button><button id="uSolo" title="Solo unit">S</button>
-      <button id="uDup" title="Duplicate unit">Duplicate</button><button id="uDel" title="Delete unit">✕ Delete</button></div>
+      <button id="uDup" title="Duplicate unit">Duplicate</button><button id="uDel" title="Delete unit">✕</button></div>
     <h2>Rings <span style="text-transform:none;letter-spacing:0">(outer → inner)</span></h2>
     <div id="rings"></div>
     <p class="hint">
       <kbd>Click</kbd> empty cell: stamp the ring's brush (last edited chord) · <kbd>Click</kbd> filled cell: select ·
-      <kbd>Drag</kbd>: paint · <kbd>Right-click/drag</kbd>: erase · <kbd>Wheel</kbd>: transpose (<kbd>Shift</kbd>: octave) ·
-      <kbd>Space</kbd>: play/stop · <kbd>←</kbd><kbd>→</kbd>: move selection · <kbd>↑</kbd><kbd>↓</kbd>: transpose ·
+      <kbd>Drag</kbd>: paint · <kbd>Right-click/drag</kbd>: erase · <kbd>Wheel</kbd>: transpose (<kbd>Shift</kbd>: octave; drums: velocity) ·
+      <kbd>Space</kbd>: play/stop · <kbd>←</kbd><kbd>→</kbd>: move selection · <kbd>↑</kbd><kbd>↓</kbd>: transpose (drums: velocity) · tiny <b>M</b>/<b>S</b> on each disc: unit mute/solo ·
       <kbd>Del</kbd>: clear step · <kbd>Esc</kbd>: deselect · <kbd>1</kbd>–<kbd>6</kbd>: select unit ·
       <kbd>P</kbd>: panel · <kbd>F</kbd>: full screen · click any centre to play/stop all units.
     </p>
@@ -130,12 +133,18 @@ const isBlack=n=>[1,3,6,8,10].includes(((n%12)+12)%12);
 const PALETTE=['#ff6b6b','#ffd166','#06d6a0','#4cc9f0','#b388ff','#f78c6b','#a0e426','#ff8fd8'];
 const PRESETS=[['1',[0]],['5',[0,7]],['8va',[0,12]],['maj',[0,4,7]],['min',[0,3,7]],['7',[0,4,7,10]],['maj7',[0,4,7,11]],['m7',[0,3,7,10]],['sus2',[0,2,7]],['sus4',[0,5,7]],['dim',[0,3,6]],['aug',[0,4,8]]];
 const CHORDS=[[[0,4,7],''],[[0,3,7],'m'],[[0,4,7,11],'maj7'],[[0,3,7,10],'m7'],[[0,4,7,10],'7'],[[0,2,7],'sus2'],[[0,5,7],'sus4'],[[0,3,6],'dim'],[[0,4,8],'aug'],[[0,3,6,10],'m7♭5'],[[0,3,6,9],'dim7'],[[0,4,7,9],'6'],[[0,3,7,9],'m6'],[[0,7],'5']];
+// Drum kit: GM drum note numbers, so drum units map onto MIDI channel 10 later.
+const DRUMS=[{n:36,id:'BD',name:'Kick'},{n:38,id:'SD',name:'Snare'},{n:42,id:'CH',name:'Closed hat'},{n:46,id:'OH',name:'Open hat'},
+  {n:39,id:'CP',name:'Clap'},{n:45,id:'LT',name:'Low tom'},{n:50,id:'HT',name:'High tom'},{n:37,id:'RS',name:'Rimshot'},
+  {n:56,id:'CB',name:'Cowbell'},{n:49,id:'CY',name:'Crash'}];
+const drumInfo=n=>DRUMS.find(d=>d.n===n)||DRUMS[0];
 const MAX_RINGS=8, MAX_UNITS=6, LOOKAHEAD=0.12, TICK_MS=25, STORE_KEY='circseq.v2', OLD_STORE_KEY='circseq.v1';
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const $=s=>document.querySelector(s);
 const hexA=(hex,a)=>{const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
 const parseNote=s=>{const m=/^([A-G]#?)(-?\d)$/.exec(s);return NOTE_NAMES.indexOf(m[1])+12*(+m[2]+1);};
 
+const cellLabel=(r,ev)=>isDrums(unitOf(r))?drumInfo(r.drum??36).id:chordName(ev.notes);
 function chordName(notes){
   if(!notes.length) return '';
   if(notes.length===1) return noteName(notes[0]);
@@ -161,7 +170,8 @@ let hover=null;
 let active=null;       // id of the unit shown in the side panel
 let kbBase=48;         // keyboard starts at C3
 
-function makeUnit(o={}){return Object.assign({id:uid++,mute:false,solo:false,rings:[]},o);}
+function makeUnit(o={}){return Object.assign({id:uid++,type:'synth',mute:false,solo:false,rings:[]},o);}
+const isDrums=u=>!!u&&u.type==='drums';
 const unitById=id=>state.units.find(u=>u.id===id)||null;
 const unitOf=r=>state.units.find(u=>u.rings.includes(r))||null;
 const unitIndex=u=>state.units.indexOf(u);
@@ -170,7 +180,7 @@ const activeUnit=()=>unitById(active)||state.units[0]||null;
 function makeRing(o={}){
   const id=uid++;
   return Object.assign({id,steps:16,beats:4,wave:'triangle',cutoff:5000,res:1,attack:0.005,release:0.25,volume:0.7,
-    mute:false,solo:false,color:PALETTE[(id-1)%PALETTE.length],euk:4,brush:{notes:[60],vel:100,dur:1,prob:100},events:[]},o);
+    mute:false,solo:false,color:PALETTE[(id-1)%PALETTE.length],euk:4,drum:null,tune:0,decay:1,brush:{notes:[60],vel:100,dur:1,prob:100},events:[]},o);
 }
 function mkEv(phase,notes,o={}){return {phase,notes:[...notes].sort((a,b)=>a-b),vel:o.vel??100,dur:o.dur??1,prob:o.prob??100};}
 const stepOf=(r,e)=>Math.round(e.phase*r.steps)%r.steps;
@@ -214,7 +224,13 @@ function demo(){
   put(f,[[0,'E6'],[4,'B5'],[7,'C6']],{vel:60,dur:0.5});
   const all=[a,b,c,e5,d,f];
   for(const r of all){const e=r.events[0];r.brush={notes:[...e.notes],vel:e.vel,dur:e.dur,prob:e.prob};r.euk=r.events.length;}
+  const dr=(drum,steps,beats,hits,o={})=>{const r=makeRing(Object.assign({steps,beats,drum,volume:0.8},o));
+    for(const s of hits) r.events.push(mkEv(s/steps,[drum],{vel:o.vel??100,dur:0.5}));
+    r.brush={notes:[drum],vel:o.vel??100,dur:0.5,prob:100};r.euk=hits.length;return r;};
+  const kit=[dr(36,16,4,[0,6,10],{vel:115}),dr(38,16,4,[4,12],{vel:100}),
+    dr(42,16,4,[0,2,4,6,8,10,12,14],{vel:70,volume:0.55}),dr(37,7,4,[0,3,5],{vel:80,volume:0.5})];
   const units=[[a,b],[c,e5],[d,f]].map(rs=>makeUnit({rings:rs}));
+  units.push(makeUnit({type:'drums',rings:kit}));
   for(const u of units) u.rings.forEach((r,i)=>r.color=PALETTE[(i+unitIndexOf(units,u)*2)%PALETTE.length]);
   state={version:2,bpm:110,master:0.8,units};
   sel=null;active=units[0].id;
@@ -240,7 +256,7 @@ function loadData(d){
   if(!srcUnits) throw new Error('Not a sequence file');
   uid=1;
   const units=srcUnits.slice(0,MAX_UNITS).map(su=>{
-    const u=makeUnit({mute:!!su.mute,solo:!!su.solo});
+    const u=makeUnit({type:su.type==='drums'?'drums':'synth',mute:!!su.mute,solo:!!su.solo});
     u.rings=(su.rings||[]).slice(0,MAX_RINGS).map(sanitizeRing);
     return u;
   });
@@ -249,7 +265,7 @@ function loadData(d){
   sel=null;active=units[0].id;
 }
 function cloneUnit(u){
-  const nu=makeUnit({mute:u.mute,solo:false});
+  const nu=makeUnit({type:u.type,mute:u.mute,solo:false});
   nu.rings=JSON.parse(JSON.stringify(u.rings,(k,v)=>k.startsWith('_')?undefined:v)).map(sanitizeRing);
   return nu;
 }
@@ -300,10 +316,49 @@ function silenceAll(){
     try{v.g.gain.cancelScheduledValues(now);v.g.gain.setTargetAtTime(0,now,0.015);v.osc.stop(now+0.1);}catch(e){}
   }
 }
+let noiseBuf=null;
+function noiseSrc(){
+  if(!noiseBuf){
+    noiseBuf=actx.createBuffer(1,actx.sampleRate,actx.sampleRate);
+    const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  }
+  const s=actx.createBufferSource();s.buffer=noiseBuf;s.loop=true;return s;
+}
+// Small analogue-style drum kit; Tune shifts pitch/filters, Decay scales envelope length.
+function playDrum(r,vel,t){
+  const out=actx.createGain();out.gain.value=Math.pow(vel/127,1.5);out.connect(bus(r));
+  const tune=Math.pow(2,(r.tune||0)/12),dk=r.decay||1,nodes=[];let end=t+0.05;
+  const env=(g,peak,dec,at)=>{dec*=dk;g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(peak,at+0.001);
+    g.gain.exponentialRampToValueAtTime(0.0001,at+dec);end=Math.max(end,at+dec);};
+  const osc=(type,f0,f1,sweep,peak,dec)=>{
+    const o=actx.createOscillator();o.type=type;o.frequency.setValueAtTime(f0*tune,t);
+    if(f1) o.frequency.exponentialRampToValueAtTime(f1*tune,t+sweep);
+    const g=actx.createGain();env(g,peak,dec,t);o.connect(g);g.connect(out);o.start(t);nodes.push(o);};
+  const nz=(ftype,freq,q,peak,dec,at=t)=>{
+    const sr=noiseSrc(),f=actx.createBiquadFilter();f.type=ftype;f.frequency.value=Math.min(18000,freq*tune);f.Q.value=q;
+    const g=actx.createGain();env(g,peak,dec,at);sr.connect(f);f.connect(g);g.connect(out);sr.start(at);nodes.push(sr);};
+  switch(r.drum??36){
+    case 36:osc('sine',160,42,0.12,1,0.45);nz('lowpass',3000,0.7,0.25,0.015);break;
+    case 38:osc('triangle',190,140,0.08,0.55,0.12);nz('highpass',1200,0.7,0.6,0.2);break;
+    case 42:nz('highpass',7500,0.8,0.45,0.05);break;
+    case 46:nz('highpass',7000,0.8,0.4,0.4);break;
+    case 39:for(const d of [0,0.012,0.024]) nz('bandpass',1200,1.5,0.7,0.03,t+d);nz('bandpass',1200,1.5,0.6,0.2,t+0.036);break;
+    case 45:osc('sine',110,70,0.25,0.9,0.4);break;
+    case 50:osc('sine',190,120,0.2,0.85,0.3);break;
+    case 37:osc('triangle',1700,0,0,0.45,0.03);nz('highpass',2500,0.7,0.35,0.03);break;
+    case 56:osc('square',540,0,0,0.18,0.35);osc('square',800,0,0,0.18,0.35);break;
+    case 49:nz('highpass',5000,0.5,0.4,1.4);break;
+    default:osc('sine',160,42,0.12,1,0.45);
+  }
+  for(const n of nodes) n.stop(end+0.05);
+  const v={osc:nodes[0],g:out};voices.add(v);
+  nodes[0].onended=()=>{voices.delete(v);out.disconnect();};
+}
 function audition(r,notes,vel){
   if(playing) return;
   ensureAudio();
   const t=actx.currentTime+0.01;
+  if(isDrums(unitOf(r))){playDrum(r,vel,t);return;}
   for(const n of notes) playNote(r,n,vel,t,0.3);
 }
 
@@ -334,17 +389,20 @@ function tick(){
       let e=ev.phase+Math.ceil(p0-ev.phase);
       while(e<p1){
         const t=schedTime+(e*r.beats-b0)*spb;
-        trigger(r,ev,t,r.beats*spb);
+        trigger(r,ev,t,r.beats*spb,u);
         e+=1;
       }
     }
   }
   beatPos=b1;schedTime=end;
 }
-function trigger(r,ev,t,ringSec){
+function trigger(r,ev,t,ringSec,u){
   if(ev.prob<100&&Math.random()*100>=ev.prob) return;
-  const dur=ev.dur*ringSec/r.steps;
-  for(const n of ev.notes) playNote(r,n,ev.vel,t,dur);
+  if(isDrums(u)) playDrum(r,ev.vel,t);
+  else{
+    const dur=ev.dur*ringSec/r.steps;
+    for(const n of ev.notes) playNote(r,n,ev.vel,t,dur);
+  }
   flashes.push({ev,t});
 }
 const currentBeat=()=>playing?beatPos-(schedTime-actx.currentTime)*state.bpm/60:null;
@@ -408,10 +466,21 @@ function drawUnit(L,cb,now,isActive){
   g2.textAlign='left';g2.textBaseline='top';
   g2.font='700 16px system-ui,"Segoe UI",sans-serif';
   g2.fillStyle=isActive?'#4cc9f0':'#9aa4b2';
-  const tag=(u.mute?'  MUTE':'')+(u.solo?'  SOLO':'');
-  g2.fillText(`UNIT ${ui+1}${tag}`,L.x0+20,L.y0+18);
+  g2.fillText(`UNIT ${ui+1}`,L.x0+20,L.y0+18);
+  const tw0=g2.measureText(`UNIT ${ui+1}`).width;
+  g2.font='600 13px system-ui,sans-serif';g2.fillStyle=isDrums(u)?'#f78c6b':'#06d6a0';
+  g2.fillText(isDrums(u)?'DRUMS':'SYNTH',L.x0+30+tw0,L.y0+20);
+  for(const b of unitBtns(L)){
+    const on=u[b.k],hov=hover&&hover.btn===b.k&&hover.unitId===u.id;
+    roundRect(b.x,b.y,b.w,b.h,5);
+    g2.fillStyle=on?(b.k==='mute'?'#ffd166':'#4cc9f0'):hov?'#2a313b':'#1c2129';g2.fill();
+    g2.lineWidth=1;g2.strokeStyle=on?'transparent':'#3a4350';g2.stroke();
+    g2.fillStyle=on?'#05080b':'#c9d1db';g2.font='700 13px system-ui,sans-serif';
+    g2.textAlign='center';g2.textBaseline='middle';g2.fillText(b.k==='mute'?'M':'S',b.x+b.w/2,b.y+b.h/2+1);
+    g2.textAlign='left';g2.textBaseline='top';
+  }
   g2.font='500 14px system-ui,sans-serif';g2.fillStyle='#6f7a89';
-  g2.fillText(u.rings.map(r=>r.steps).join(' · ')+' steps',L.x0+20,L.y0+40);
+  g2.fillText(isDrums(u)?u.rings.map(r=>drumInfo(r.drum??36).id+' '+r.steps).join(' · '):u.rings.map(r=>r.steps).join(' · ')+' steps',L.x0+20,L.y0+40);
 
   u.rings.forEach((r,i)=>{
     const ro=R-i*band,ri=ro-band+gap,rm=(ro+ri)/2;
@@ -437,10 +506,10 @@ function drawUnit(L,cb,now,isActive){
       if(isSel){g2.lineWidth=2.5;g2.strokeStyle='#fff';g2.stroke();}
       else if(isHov){g2.lineWidth=1.5;g2.strokeStyle='rgba(255,255,255,0.45)';g2.stroke();}
       if(ev){
-        const ge=ang((s+Math.max(0.05,ev.dur))/r.steps)-pad;
+        const ge=ang((s+(isDrums(u)?0.25:Math.max(0.05,ev.dur)))/r.steps)-pad;
         g2.beginPath();g2.arc(cx,cy,ri+3,a0,ge);
         g2.lineWidth=3;g2.strokeStyle=hexA(r.color,dimmed?0.35:0.95);g2.stroke();
-        const label=chordName(ev.notes);
+        const label=cellLabel(r,ev);
         const fs=clamp(band*0.3,13,17);
         g2.font=`600 ${fs}px system-ui,"Segoe UI",sans-serif`;
         const tw=g2.measureText(label).width;
@@ -484,8 +553,14 @@ function drawUnit(L,cb,now,isActive){
 }
 
 /* ================= canvas interaction ================= */
+function unitBtns(L){
+  const w=28,h=24,y=L.y0+18,xr=L.x0+L.w-20;
+  return [{k:'mute',x:xr-2*w-6,y,w,h},{k:'solo',x:xr-w,y,w,h}];
+}
 function hit(x,y){
   if(!lay) return null;
+  for(const L of lay) for(const b of unitBtns(L))
+    if(x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h) return {unitId:L.u.id,btn:b.k};
   const L=lay.find(l=>x>=l.x0&&x<l.x0+l.w&&y>=l.y0&&y<l.y0+l.h);
   if(!L) return null;
   const u=L.u,base={unitId:u.id};
@@ -508,6 +583,7 @@ cv.addEventListener('pointerdown',e=>{
   if(document.activeElement&&document.activeElement!==document.body) document.activeElement.blur();
   const h=hit(e.offsetX,e.offsetY);
   if(!h) return;
+  if(h.btn){const u=unitById(h.unitId);u[h.btn]=!u[h.btn];buildCards();save();return;}
   activate(h.unitId);
   if(h.center){if(e.button===0) toggle();return;}
   if(h.ringId===undefined) return;
@@ -541,7 +617,8 @@ cv.addEventListener('wheel',e=>{
   if(!ev) return;
   e.preventDefault();
   const dir=(e.deltaY||e.deltaX)<0?1:-1;
-  transpose(r,ev,dir*(e.shiftKey?12:1));
+  if(isDrums(unitOf(r))) setVel(r,ev,ev.vel+dir*(e.shiftKey?24:8));
+  else transpose(r,ev,dir*(e.shiftKey?12:1));
   sel={ringId:r.id,step:h.step};
   edited(r,ev);updateStatus();
 },{passive:false});
@@ -554,6 +631,7 @@ function edited(r,ev,setBrush=true){
 function transpose(r,ev,d){
   if(ev.notes.every(n=>n+d>=0&&n+d<=127)){ev.notes=ev.notes.map(n=>n+d);audition(r,ev.notes,ev.vel);}
 }
+function setVel(r,ev,v){ev.vel=clamp(Math.round(v),1,127);audition(r,ev.notes,ev.vel);}
 const selRing=()=>sel?ringById(sel.ringId):null;
 const selEvent=()=>{const r=selRing();return r?getEvent(r,sel.step):null;};
 function toggleNote(n){
@@ -630,7 +708,10 @@ for(const [id,key] of [['edVel','vel'],['edDur','dur'],['edProb','prob']]){
 function renderEditor(){
   const r=selRing(),ev=selEvent();
   $('#edTitle').textContent=r?`Unit ${unitIndex(unitOf(r))+1} · Ring ${ringIndex(r)+1} · step ${sel.step+1}/${r.steps}`:'No step selected — click a cell';
-  $('#edChord').textContent=ev?`${chordName(ev.notes)}   (${ev.notes.map(noteName).join(' ')})`:(r?'empty — click keys to add notes':'');
+  const drums=!!r&&isDrums(unitOf(r));
+  $('#editor').classList.toggle('drums',drums);
+  if(drums) $('#edChord').textContent=drumInfo(r.drum??36).name+(ev?'':' — empty (click the cell to add a hit)');
+  else $('#edChord').textContent=ev?`${chordName(ev.notes)}   (${ev.notes.map(noteName).join(' ')})`:(r?'empty — click keys to add notes':'');
   const on=new Set(ev?ev.notes:[]);
   for(const k of document.querySelectorAll('#kb [data-n]')){
     const n=+k.dataset.n,isOn=on.has(n);
@@ -655,7 +736,8 @@ function buildCards(){
   $('#unitTitle').textContent=u?'Unit '+(unitIndex(u)+1):'No unit';
   $('#uMute').classList.toggle('on',!!(u&&u.mute));
   $('#uSolo').classList.toggle('on',!!(u&&u.solo));
-  for(const id of ['uMute','uSolo','uDup','uDel','uRings']) $('#'+id).disabled=!u;
+  for(const id of ['uMute','uSolo','uDup','uDel','uRings','uType']) $('#'+id).disabled=!u;
+  if(u) $('#uType').value=u.type;
   $('#uRings').value=u?u.rings.length:'';
   $('#uDup').disabled=!u||state.units.length>=MAX_UNITS;
   $('#addUnit').disabled=state.units.length>=MAX_UNITS;
@@ -664,26 +746,34 @@ function buildCards(){
 }
 function card(r,i){
   const el=document.createElement('div');el.className='card';el.style.borderLeftColor=r.color;
-  el.innerHTML=`
-  <div class="chead"><span class="dot" style="background:${r.color}"></span><b>Ring ${i+1}</b><span class="brush"></span>
-    <span class="sp"></span><button data-a="mute" title="Mute">M</button><button data-a="solo" title="Solo">S</button><button data-a="del" title="Delete ring">✕</button></div>
-  <div class="cgrid">
-    <label>Steps <input type="number" data-k="steps" min="1" max="64" step="1"></label>
-    <label>Length (beats) <input type="number" data-k="beats" min="0.25" max="64" step="0.25"></label>
+  const drums=isDrums(unitOf(r));
+  const soundRows=drums?`
+    <label>Drum <select data-k="drum">${DRUMS.map(d=>`<option value="${d.n}">${d.id} · ${d.name}</option>`).join('')}</select></label>
+    <label>Volume <input type="range" data-k="volume" min="0" max="1" step="0.01"></label>
+    <label>Tune <input type="range" data-k="tune" min="-12" max="12" step="1"><span class="v" data-v="tune"></span></label>
+    <label>Decay <input type="range" data-k="decay" min="0.2" max="3" step="0.05"><span class="v" data-v="decay"></span></label>`:`
     <label>Wave <select data-k="wave"><option>sine</option><option>triangle</option><option>square</option><option>sawtooth</option></select></label>
     <label>Volume <input type="range" data-k="volume" min="0" max="1" step="0.01"></label>
     <label>Cutoff <input type="range" data-k="cutoff" min="0" max="100" step="1"><span class="v" data-v="cutoff"></span></label>
     <label>Resonance <input type="range" data-k="res" min="0.1" max="15" step="0.1"></label>
     <label>Attack <input type="range" data-k="attack" min="0.002" max="1.5" step="0.002"><span class="v" data-v="attack"></span></label>
-    <label>Release <input type="range" data-k="release" min="0.01" max="3" step="0.01"><span class="v" data-v="release"></span></label>
+    <label>Release <input type="range" data-k="release" min="0.01" max="3" step="0.01"><span class="v" data-v="release"></span></label>`;
+  el.innerHTML=`
+  <div class="chead"><span class="dot" style="background:${r.color}"></span><b>Ring ${i+1}</b><span class="brush"></span>
+    <span class="sp"></span><button data-a="mute" title="Mute">M</button><button data-a="solo" title="Solo">S</button><button data-a="del" title="Delete ring">✕</button></div>
+  <div class="cgrid">
+    <label>Steps <input type="number" data-k="steps" min="1" max="64" step="1"></label>
+    <label>Length (beats) <input type="number" data-k="beats" min="0.25" max="64" step="0.25"></label>${soundRows}
   </div>
   <div class="tools">Euclid hits <input type="number" data-k="euk" min="0" max="64" step="1"><button data-a="euclid" title="Spread the hits evenly using the brush">Fill</button>
     <button data-a="rotL" title="Rotate pattern counter-clockwise">⟲ Rotate</button><button data-a="rotR" title="Rotate pattern clockwise">Rotate ⟳</button><button data-a="clear">Clear</button></div>`;
   const q=s=>el.querySelector(s);
-  const setV=()=>{q('[data-v=cutoff]').textContent=fmtHz(r.cutoff);q('[data-v=attack]').textContent=r.attack.toFixed(3)+'s';q('[data-v=release]').textContent=r.release.toFixed(2)+'s';};
+  const setV=()=>{
+    if(drums){q('[data-v=tune]').textContent=(r.tune>0?'+':'')+r.tune+' st';q('[data-v=decay]').textContent='×'+(+r.decay).toFixed(2);return;}
+    q('[data-v=cutoff]').textContent=fmtHz(r.cutoff);q('[data-v=attack]').textContent=r.attack.toFixed(3)+'s';q('[data-v=release]').textContent=r.release.toFixed(2)+'s';};
   for(const inp of el.querySelectorAll('[data-k]')){
     const k=inp.dataset.k;
-    inp.value=k==='cutoff'?cutToSlider(r.cutoff):r[k];
+    inp.value=k==='cutoff'?cutToSlider(r.cutoff):k==='drum'?(r.drum??36):r[k];
     const evt=inp.type==='number'?'change':'input';
     inp.addEventListener(evt,()=>{
       const v=inp.type==='number'||inp.type==='range'?+inp.value:inp.value;
@@ -691,6 +781,7 @@ function card(r,i){
       else if(k==='beats'){r.beats=clamp(v||4,0.25,64);inp.value=r.beats;}
       else if(k==='euk'){r.euk=clamp(Math.round(v)||0,0,64);inp.value=r.euk;}
       else if(k==='cutoff') r.cutoff=sliderToCut(v);
+      else if(k==='drum'){r.drum=+v;r.brush.notes=[r.drum];refresh();audition(r,[r.drum],100);}
       else r[k]=v;
       if(k==='volume'&&actx&&buses.has(r.id)) buses.get(r.id).gain.setTargetAtTime(r.volume,actx.currentTime,0.02);
       setV();save();
@@ -723,11 +814,11 @@ function card(r,i){
     if(a==='clear') r.events=[];
     renderEditor();save();
   });
-  const refresh=()=>{
-    q('.brush').textContent='brush: '+chordName(r.brush.notes);
+  function refresh(){
+    q('.brush').textContent=drums?drumInfo(r.drum??36).name:'brush: '+chordName(r.brush.notes);
     q('[data-a=mute]').classList.toggle('on',r.mute);
     q('[data-a=solo]').classList.toggle('on',r.solo);
-  };
+  }
   setV();refresh();
   cards.set(r.id,{el,refresh});
   return el;
@@ -744,6 +835,7 @@ function updatePlay(){const b=$('#play');b.textContent=playing?'■ Stop':'▶ P
 function pushRing(u){
   const r=makeRing({steps:8,beats:4,wave:'square',cutoff:2500,volume:0.5,brush:{notes:[60],vel:100,dur:1,prob:100}});
   r.color=PALETTE[(u.rings.length+unitIndex(u)*2)%PALETTE.length];
+  if(isDrums(u)){r.drum=DRUMS[u.rings.length%DRUMS.length].n;r.steps=16;r.brush={notes:[r.drum],vel:100,dur:0.5,prob:100};}
   u.rings.push(r);
 }
 // Set the number of concentric rings: adds new rings inside, removes the innermost ones.
@@ -764,6 +856,13 @@ $('#addRing').onclick=()=>{
   if(!u||u.rings.length>=MAX_RINGS) return;
   setRingCount(u,u.rings.length+1);
 };
+// Switching type is non-destructive: synth notes stay stored; drum rings play their own drum sound.
+$('#uType').addEventListener('change',e=>{
+  const u=activeUnit();if(!u) return;
+  u.type=e.target.value==='drums'?'drums':'synth';
+  if(isDrums(u)) u.rings.forEach((r,i)=>{if(r.drum==null) r.drum=DRUMS[i%DRUMS.length].n;});
+  buildCards();renderEditor();save();
+});
 $('#uRings').addEventListener('change',e=>{const u=activeUnit();if(u) setRingCount(u,+e.target.value);});
 $('#addUnit').onclick=()=>{
   if(state.units.length>=MAX_UNITS) return;
@@ -813,8 +912,10 @@ document.addEventListener('keydown',e=>{
   switch(e.key){
     case 'ArrowLeft':e.preventDefault();moveSel(-1);break;
     case 'ArrowRight':e.preventDefault();moveSel(1);break;
-    case 'ArrowUp':if(ev){e.preventDefault();transpose(r,ev,e.shiftKey?12:1);edited(r,ev);}break;
-    case 'ArrowDown':if(ev){e.preventDefault();transpose(r,ev,e.shiftKey?-12:-1);edited(r,ev);}break;
+    case 'ArrowUp':case 'ArrowDown':if(ev){
+      e.preventDefault();const d=e.key==='ArrowUp'?1:-1;
+      if(isDrums(unitOf(r))) setVel(r,ev,ev.vel+d*(e.shiftKey?24:8));else transpose(r,ev,d*(e.shiftKey?12:1));
+      edited(r,ev);}break;
     case 'Delete':case 'Backspace':if(r){e.preventDefault();clearSel();}break;
     case 'Escape':sel=null;renderEditor();break;
     case 'p':case 'P':$('#panelBtn').onclick();break;
@@ -831,11 +932,13 @@ function updateStatus(msg){
   const el=$('#status');
   if(statusMsg){el.textContent=statusMsg;return;}
   if(!hover||(!hover.center&&hover.ringId===undefined)){el.innerHTML='Hover a cell for details.';return;}
+  if(hover.btn){el.innerHTML=(hover.btn==='mute'?'Mute':'Solo')+' unit '+(unitIndex(unitById(hover.unitId))+1);return;}
   if(hover.center){el.innerHTML='Click to '+(playing?'stop':'play')+' (all units)';return;}
   const r=ringById(hover.ringId);if(!r) return;
   const ev=getEvent(r,hover.step);
   el.innerHTML=`<b>Unit ${unitIndex(unitOf(r))+1} · Ring ${ringIndex(r)+1}</b> · step ${hover.step+1}/${r.steps} · loop ${r.beats} beats`+
-    (ev?` · <b>${chordName(ev.notes)}</b> (${ev.notes.map(noteName).join(' ')}) · vel ${ev.vel} · gate ${ev.dur} · prob ${ev.prob}%`:' · empty');
+    (ev?(isDrums(unitOf(r))?` · <b>${drumInfo(r.drum??36).name}</b> · vel ${ev.vel} · prob ${ev.prob}%`
+       :` · <b>${chordName(ev.notes)}</b> (${ev.notes.map(noteName).join(' ')}) · vel ${ev.vel} · gate ${ev.dur} · prob ${ev.prob}%`):' · empty');
 }
 
 /* ================= boot ================= */
