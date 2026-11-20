@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Circular Sequencer v1.1</title>
+<title>Circular Sequencer v1.2</title>
 <style>
 :root{--bg:#0e1013;--panel:#161a20;--panel2:#1f252e;--line:#2c333e;--txt:#e6e9ee;--dim:#9aa4b2;--acc:#4cc9f0}
 *{box-sizing:border-box}
@@ -61,6 +61,8 @@ h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)
 .unithead{display:flex;align-items:center;gap:6px;margin:0 0 8px}
 .unithead h2{margin:0;color:var(--acc);font-size:15px}
 .unithead .sp{flex:1}
+.unithead .rc{margin-left:14px;font-size:14px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.unithead .rc input{width:58px}
 .unithead button{font-size:14px;padding:3px 9px}
 aside[hidden]{display:none}
 .hint{font-size:13.5px;color:var(--dim);line-height:1.55}
@@ -69,7 +71,7 @@ aside[hidden]{display:none}
 </head>
 <body>
 <header>
-  <h1>CIRCULAR SEQUENCER <span style="color:var(--dim);font-weight:500;letter-spacing:.04em">v1.1</span></h1>
+  <h1>CIRCULAR SEQUENCER <span style="color:var(--dim);font-weight:500;letter-spacing:.04em">v1.2</span></h1>
   <button id="play" class="play">▶ Play</button>
   <div class="grp">BPM <input type="number" id="bpm" min="20" max="300" step="1"><input type="range" id="bpmR" min="20" max="300" step="1"></div>
   <div class="grp">Master <input type="range" id="master" min="0" max="1" step="0.01"></div>
@@ -104,7 +106,8 @@ aside[hidden]{display:none}
       <div class="sl"><span>Gate (steps)</span><input type="range" id="edDur" min="0.1" max="16" step="0.1"><span id="edDurV"></span></div>
       <div class="sl"><span>Probability</span><input type="range" id="edProb" min="0" max="100" step="1"><span id="edProbV"></span></div>
     </section>
-    <div class="unithead"><h2 id="unitTitle">Unit</h2><span class="sp"></span>
+    <div class="unithead"><h2 id="unitTitle">Unit</h2>
+      <label class="rc">Rings <input type="number" id="uRings" min="1" max="8" step="1"></label><span class="sp"></span>
       <button id="uMute" title="Mute unit">M</button><button id="uSolo" title="Solo unit">S</button>
       <button id="uDup" title="Duplicate unit">Duplicate</button><button id="uDel" title="Delete unit">✕ Delete</button></div>
     <h2>Rings <span style="text-transform:none;letter-spacing:0">(outer → inner)</span></h2>
@@ -652,7 +655,8 @@ function buildCards(){
   $('#unitTitle').textContent=u?'Unit '+(unitIndex(u)+1):'No unit';
   $('#uMute').classList.toggle('on',!!(u&&u.mute));
   $('#uSolo').classList.toggle('on',!!(u&&u.solo));
-  for(const id of ['uMute','uSolo','uDup','uDel']) $('#'+id).disabled=!u;
+  for(const id of ['uMute','uSolo','uDup','uDel','uRings']) $('#'+id).disabled=!u;
+  $('#uRings').value=u?u.rings.length:'';
   $('#uDup').disabled=!u||state.units.length>=MAX_UNITS;
   $('#addUnit').disabled=state.units.length>=MAX_UNITS;
   $('#addRing').disabled=!u||u.rings.length>=MAX_RINGS;
@@ -737,13 +741,30 @@ $('#bpmR').addEventListener('input',e=>setBpm(e.target.value));
 $('#master').addEventListener('input',e=>{state.master=+e.target.value;if(masterGain) masterGain.gain.setTargetAtTime(state.master,actx.currentTime,0.02);save();});
 $('#play').onclick=toggle;
 function updatePlay(){const b=$('#play');b.textContent=playing?'■ Stop':'▶ Play';b.classList.toggle('on',playing);}
+function pushRing(u){
+  const r=makeRing({steps:8,beats:4,wave:'square',cutoff:2500,volume:0.5,brush:{notes:[60],vel:100,dur:1,prob:100}});
+  r.color=PALETTE[(u.rings.length+unitIndex(u)*2)%PALETTE.length];
+  u.rings.push(r);
+}
+// Set the number of concentric rings: adds new rings inside, removes the innermost ones.
+function setRingCount(u,n){
+  n=clamp(Math.round(n)||1,1,MAX_RINGS);
+  let lostNotes=0;
+  while(u.rings.length>n){
+    const r=u.rings.pop();lostNotes+=r.events.length;
+    if(buses.has(r.id)){buses.get(r.id).disconnect();buses.delete(r.id);}
+    if(sel&&sel.ringId===r.id) sel=null;
+  }
+  while(u.rings.length<n) pushRing(u);
+  buildCards();renderEditor();save();
+  if(lostNotes) updateStatus(`Removed inner rings (${lostNotes} filled step${lostNotes>1?'s':''} discarded).`);
+}
 $('#addRing').onclick=()=>{
   const u=activeUnit();
   if(!u||u.rings.length>=MAX_RINGS) return;
-  const r=makeRing({steps:8,beats:4,wave:'square',cutoff:2500,volume:0.5,brush:{notes:[60],vel:100,dur:1,prob:100}});
-  r.color=PALETTE[(u.rings.length+unitIndex(u)*2)%PALETTE.length];
-  u.rings.push(r);buildCards();save();
+  setRingCount(u,u.rings.length+1);
 };
+$('#uRings').addEventListener('change',e=>{const u=activeUnit();if(u) setRingCount(u,+e.target.value);});
 $('#addUnit').onclick=()=>{
   if(state.units.length>=MAX_UNITS) return;
   const u=makeUnit();state.units.push(u);
