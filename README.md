@@ -5,11 +5,13 @@ Up to six sequencer **units** (circles) run side by side on one shared clock, ea
 Each ring is an independent loop with its own step count and length, so polyrhythms show up
 directly on the circle. Each step can hold a single note or a full chord.
 
-**Version:** v1.3
+**Version:** v1.3.1
 
 ## Usage
 
-Open `circular-sequencer.html` in Chrome or Edge. Nothing to install.
+**Live:** https://droogia.github.io/circular-sequencer/
+
+Or download `index.html` and open it locally in Chrome or Edge. Nothing to install.
 
 | Action | Effect |
 |---|---|
@@ -68,6 +70,7 @@ The pattern autosaves to the browser's local storage. **Save JSON** / **Load JSO
 - Per-unit tempo ratio and start/stop
 
 ## Changelog
+- **v1.3.1** — Main file renamed to `index.html` for GitHub Pages.
 - **v1.3** — Synth/Drums unit type with a built-in drum kit; tiny mute/solo buttons on each disc; demo gains a drum unit.
 - **v1.2** — Rings count per unit, set directly from the unit header.
 - **v1.1** — Units: up to 6 synchronized circles in a full-screen grid, unit mute/solo/duplicate/delete, panel toggle, full screen. v1.0 patterns load as a single unit.
