@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Circular Sequencer v1.0</title>
+<title>Circular Sequencer v1.1</title>
 <style>
 :root{--bg:#0e1013;--panel:#161a20;--panel2:#1f252e;--line:#2c333e;--txt:#e6e9ee;--dim:#9aa4b2;--acc:#4cc9f0}
 *{box-sizing:border-box}
@@ -58,22 +58,30 @@ h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)
 .tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:14px;color:var(--dim)}
 .tools input{width:58px}
 .tools button{font-size:14px;padding:3px 9px}
+.unithead{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+.unithead h2{margin:0;color:var(--acc);font-size:15px}
+.unithead .sp{flex:1}
+.unithead button{font-size:14px;padding:3px 9px}
+aside[hidden]{display:none}
 .hint{font-size:13.5px;color:var(--dim);line-height:1.55}
 .hint kbd{background:#252b34;border:1px solid var(--line);border-radius:4px;padding:0 5px;font:13px ui-monospace,Consolas,monospace;color:var(--txt)}
 </style>
 </head>
 <body>
 <header>
-  <h1>CIRCULAR SEQUENCER <span style="color:var(--dim);font-weight:500;letter-spacing:.04em">v1.0</span></h1>
+  <h1>CIRCULAR SEQUENCER <span style="color:var(--dim);font-weight:500;letter-spacing:.04em">v1.1</span></h1>
   <button id="play" class="play">▶ Play</button>
   <div class="grp">BPM <input type="number" id="bpm" min="20" max="300" step="1"><input type="range" id="bpmR" min="20" max="300" step="1"></div>
   <div class="grp">Master <input type="range" id="master" min="0" max="1" step="0.01"></div>
   <span class="sp"></span>
+  <button id="addUnit">+ Unit</button>
   <button id="addRing">+ Ring</button>
   <button id="demo" title="Load the demo pattern">Demo</button>
   <button id="save">Save JSON</button>
   <button id="load">Load JSON</button>
   <input type="file" id="file" accept=".json,application/json" hidden>
+  <button id="panelBtn" class="on" title="Show/hide side panel (P)">Panel</button>
+  <button id="fsBtn" title="Full screen (F)">Full screen</button>
 </header>
 <main>
   <div id="stage">
@@ -96,13 +104,17 @@ h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)
       <div class="sl"><span>Gate (steps)</span><input type="range" id="edDur" min="0.1" max="16" step="0.1"><span id="edDurV"></span></div>
       <div class="sl"><span>Probability</span><input type="range" id="edProb" min="0" max="100" step="1"><span id="edProbV"></span></div>
     </section>
+    <div class="unithead"><h2 id="unitTitle">Unit</h2><span class="sp"></span>
+      <button id="uMute" title="Mute unit">M</button><button id="uSolo" title="Solo unit">S</button>
+      <button id="uDup" title="Duplicate unit">Duplicate</button><button id="uDel" title="Delete unit">✕ Delete</button></div>
     <h2>Rings <span style="text-transform:none;letter-spacing:0">(outer → inner)</span></h2>
     <div id="rings"></div>
     <p class="hint">
       <kbd>Click</kbd> empty cell: stamp the ring's brush (last edited chord) · <kbd>Click</kbd> filled cell: select ·
       <kbd>Drag</kbd>: paint · <kbd>Right-click/drag</kbd>: erase · <kbd>Wheel</kbd>: transpose (<kbd>Shift</kbd>: octave) ·
       <kbd>Space</kbd>: play/stop · <kbd>←</kbd><kbd>→</kbd>: move selection · <kbd>↑</kbd><kbd>↓</kbd>: transpose ·
-      <kbd>Del</kbd>: clear step · <kbd>Esc</kbd>: deselect · click the centre to play/stop.
+      <kbd>Del</kbd>: clear step · <kbd>Esc</kbd>: deselect · <kbd>1</kbd>–<kbd>6</kbd>: select unit ·
+      <kbd>P</kbd>: panel · <kbd>F</kbd>: full screen · click any centre to play/stop all units.
     </p>
   </aside>
 </main>
@@ -115,7 +127,7 @@ const isBlack=n=>[1,3,6,8,10].includes(((n%12)+12)%12);
 const PALETTE=['#ff6b6b','#ffd166','#06d6a0','#4cc9f0','#b388ff','#f78c6b','#a0e426','#ff8fd8'];
 const PRESETS=[['1',[0]],['5',[0,7]],['8va',[0,12]],['maj',[0,4,7]],['min',[0,3,7]],['7',[0,4,7,10]],['maj7',[0,4,7,11]],['m7',[0,3,7,10]],['sus2',[0,2,7]],['sus4',[0,5,7]],['dim',[0,3,6]],['aug',[0,4,8]]];
 const CHORDS=[[[0,4,7],''],[[0,3,7],'m'],[[0,4,7,11],'maj7'],[[0,3,7,10],'m7'],[[0,4,7,10],'7'],[[0,2,7],'sus2'],[[0,5,7],'sus4'],[[0,3,6],'dim'],[[0,4,8],'aug'],[[0,3,6,10],'m7♭5'],[[0,3,6,9],'dim7'],[[0,4,7,9],'6'],[[0,3,7,9],'m6'],[[0,7],'5']];
-const MAX_RINGS=8, LOOKAHEAD=0.12, TICK_MS=25, STORE_KEY='circseq.v1';
+const MAX_RINGS=8, MAX_UNITS=6, LOOKAHEAD=0.12, TICK_MS=25, STORE_KEY='circseq.v2', OLD_STORE_KEY='circseq.v1';
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const $=s=>document.querySelector(s);
 const hexA=(hex,a)=>{const n=parseInt(hex.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
@@ -138,11 +150,19 @@ function chordName(notes){
    Ring    { steps, beats (loop length in beats), synth params, brush, events:[Event] }
    Event   { phase 0..1 around the ring, notes:[midi], vel 1..127, dur (in steps), prob 0..100 }
    Phase-based storage keeps the model ready for off-grid notes, MIDI out and Strudel export. */
-let state={version:1,bpm:110,master:0.8,rings:[]};
+/* Units: several independent circles (each with its own rings) sharing one clock. */
+let state={version:2,bpm:110,master:0.8,units:[]};
 let uid=1;
 let sel=null;          // {ringId, step}
 let hover=null;
+let active=null;       // id of the unit shown in the side panel
 let kbBase=48;         // keyboard starts at C3
+
+function makeUnit(o={}){return Object.assign({id:uid++,mute:false,solo:false,rings:[]},o);}
+const unitById=id=>state.units.find(u=>u.id===id)||null;
+const unitOf=r=>state.units.find(u=>u.rings.includes(r))||null;
+const unitIndex=u=>state.units.indexOf(u);
+const activeUnit=()=>unitById(active)||state.units[0]||null;
 
 function makeRing(o={}){
   const id=uid++;
@@ -154,10 +174,13 @@ const stepOf=(r,e)=>Math.round(e.phase*r.steps)%r.steps;
 const getEvent=(r,s)=>r.events.find(e=>stepOf(r,e)===s)||null;
 function removeEvent(r,s){r.events=r.events.filter(e=>stepOf(r,e)!==s);}
 function brushEvent(r,s){const b=r.brush;return mkEv(s/r.steps,b.notes,b);}
-const ringById=id=>state.rings.find(r=>r.id===id)||null;
-const ringIndex=r=>state.rings.indexOf(r);
-const anySolo=()=>state.rings.some(r=>r.solo);
-const audible=r=>!r.mute&&(!anySolo()||r.solo);
+function ringById(id){for(const u of state.units){const r=u.rings.find(x=>x.id===id);if(r) return r;}return null;}
+const ringIndex=r=>{const u=unitOf(r);return u?u.rings.indexOf(r):-1;};
+function audible(r,u=unitOf(r)){
+  if(!u||u.mute) return false;
+  if(state.units.some(x=>x.solo)&&!u.solo) return false;
+  return !r.mute&&(!u.rings.some(x=>x.solo)||r.solo);
+}
 
 function resizeSteps(r,n){
   n=clamp(Math.round(n)||1,1,64);
@@ -182,28 +205,50 @@ function demo(){
   put(c,[[0,'A2'],[2,'A2'],[4,'E2'],[5,'G2']],{vel:110,dur:1.5});
   const d=makeRing({steps:4,beats:16,wave:'sawtooth',cutoff:900,res:1,attack:0.35,release:0.9,volume:0.25});
   put(d,[[0,'A3 C4 E4 G4'],[1,'F3 A3 C4 E4'],[2,'C4 E4 G4'],[3,'G3 B3 D4']],{vel:70,dur:1});
-  for(const r of [a,b,c,d]){const e=r.events[0];r.brush={notes:[...e.notes],vel:e.vel,dur:e.dur,prob:e.prob};r.euk=r.events.length;}
-  state={version:1,bpm:110,master:0.8,rings:[a,b,c,d]};
-  sel=null;
+  const e5=makeRing({steps:5,beats:2,wave:'triangle',cutoff:2500,release:0.15,volume:0.45});
+  put(e5,[[0,'E3'],[3,'A3']],{vel:75,dur:0.5});
+  const f=makeRing({steps:9,beats:4,wave:'sine',cutoff:9000,release:0.6,volume:0.3});
+  put(f,[[0,'E6'],[4,'B5'],[7,'C6']],{vel:60,dur:0.5});
+  const all=[a,b,c,e5,d,f];
+  for(const r of all){const e=r.events[0];r.brush={notes:[...e.notes],vel:e.vel,dur:e.dur,prob:e.prob};r.euk=r.events.length;}
+  const units=[[a,b],[c,e5],[d,f]].map(rs=>makeUnit({rings:rs}));
+  for(const u of units) u.rings.forEach((r,i)=>r.color=PALETTE[(i+unitIndexOf(units,u)*2)%PALETTE.length]);
+  state={version:2,bpm:110,master:0.8,units};
+  sel=null;active=units[0].id;
 }
+const unitIndexOf=(list,u)=>list.indexOf(u);
 
 /* ================= persistence ================= */
 let saveT=null;
 function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(STORE_KEY,serialize());}catch(e){}},300);}
 const serialize=()=>JSON.stringify(state,(k,v)=>k.startsWith('_')?undefined:v,1);
+function sanitizeRing(src){
+  const r=makeRing();const id=r.id;
+  Object.assign(r,src,{id});
+  r.steps=clamp(Math.round(+r.steps)||16,1,64);r.beats=clamp(+r.beats||4,0.25,64);
+  r.events=(src.events||[]).filter(e=>Array.isArray(e.notes)&&e.notes.length)
+    .map(e=>mkEv(((+e.phase%1)+1)%1,e.notes.map(n=>clamp(Math.round(n),0,127)),e));
+  return r;
+}
 function loadData(d){
-  if(!d||!Array.isArray(d.rings)) throw new Error('Not a sequence file');
+  if(!d) throw new Error('Not a sequence file');
+  // v1 files had a single circle: wrap its rings into one unit
+  const srcUnits=Array.isArray(d.units)?d.units:Array.isArray(d.rings)?[{rings:d.rings}]:null;
+  if(!srcUnits) throw new Error('Not a sequence file');
   uid=1;
-  const rings=d.rings.slice(0,MAX_RINGS).map(src=>{
-    const r=makeRing();const id=r.id;
-    Object.assign(r,src,{id});
-    r.steps=clamp(Math.round(+r.steps)||16,1,64);r.beats=clamp(+r.beats||4,0.25,64);
-    r.events=(src.events||[]).filter(e=>Array.isArray(e.notes)&&e.notes.length)
-      .map(e=>mkEv(((+e.phase%1)+1)%1,e.notes.map(n=>clamp(Math.round(n),0,127)),e));
-    return r;
+  const units=srcUnits.slice(0,MAX_UNITS).map(su=>{
+    const u=makeUnit({mute:!!su.mute,solo:!!su.solo});
+    u.rings=(su.rings||[]).slice(0,MAX_RINGS).map(sanitizeRing);
+    return u;
   });
-  state={version:1,bpm:clamp(+d.bpm||110,20,300),master:clamp(d.master??0.8,0,1),rings};
-  sel=null;
+  if(!units.length) units.push(makeUnit());
+  state={version:2,bpm:clamp(+d.bpm||110,20,300),master:clamp(d.master??0.8,0,1),units};
+  sel=null;active=units[0].id;
+}
+function cloneUnit(u){
+  const nu=makeUnit({mute:u.mute,solo:false});
+  nu.rings=JSON.parse(JSON.stringify(u.rings,(k,v)=>k.startsWith('_')?undefined:v)).map(sanitizeRing);
+  return nu;
 }
 
 /* ================= audio (preview synth) ================= */
@@ -279,8 +324,8 @@ function tick(){
   if(end<=schedTime) return;
   const spb=60/state.bpm;
   const b0=beatPos,b1=b0+(end-schedTime)/spb;
-  for(const r of state.rings){
-    if(!audible(r)) continue;
+  for(const u of state.units) for(const r of u.rings){
+    if(!audible(r,u)) continue;
     const p0=b0/r.beats,p1=b1/r.beats;
     for(const ev of r.events){
       let e=ev.phase+Math.ceil(p0-ev.phase);
@@ -313,32 +358,64 @@ function resize(){
 }
 new ResizeObserver(resize).observe(wrap);
 const ang=p=>-Math.PI/2+p*2*Math.PI;
-function layout(){
-  const n=Math.max(1,state.rings.length);
-  const R=Math.max(80,Math.min(W,H)/2-24);
-  const hole=Math.max(64,R*0.17);
-  const band=(R-hole)/n;
-  return {cx:W/2,cy:H/2,R,hole,band,gap:Math.min(9,band*0.14)};
+// Arrange units in the grid (cols x rows) that gives the biggest circles.
+function layoutUnits(){
+  const n=Math.max(1,state.units.length);
+  let best=null;
+  for(let cols=1;cols<=n;cols++){
+    const rows=Math.ceil(n/cols),cw=W/cols,ch=H/rows,size=Math.min(cw,ch);
+    if(!best||size>best.size) best={cols,rows,cw,ch,size};
+  }
+  return state.units.map((u,i)=>{
+    const c=i%best.cols,rw=Math.floor(i/best.cols);
+    // centre an incomplete last row
+    const inRow=rw===best.rows-1?n-rw*best.cols:best.cols;
+    const x0=(W-inRow*best.cw)/2+c*best.cw,y0=rw*best.ch;
+    const nr=Math.max(1,u.rings.length);
+    const R=Math.max(60,Math.min(best.cw,best.ch)/2-30);
+    const hole=Math.max(44,R*0.17);
+    const band=(R-hole)/nr;
+    return {u,x0,y0,w:best.cw,h:best.ch,cx:x0+best.cw/2,cy:y0+best.ch/2+8,R,hole,band,gap:Math.min(9,band*0.14)};
+  });
 }
 function cellPath(cx,cy,ri,ro,a0,a1){
   g2.beginPath();g2.arc(cx,cy,ro,a0,a1);g2.arc(cx,cy,ri,a1,a0,true);g2.closePath();
 }
+function roundRect(x,y,w,h,r){g2.beginPath();g2.roundRect?g2.roundRect(x,y,w,h,r):g2.rect(x,y,w,h);}
 function draw(){
   requestAnimationFrame(draw);
   if(!W||!H) return;
-  lay=layout();
-  const {cx,cy,R,hole,band,gap}=lay;
+  lay=layoutUnits();
   g2.clearRect(0,0,W,H);
   const now=actx?actx.currentTime:0;
   for(let i=flashes.length-1;i>=0;i--) if(flashes[i].t<=now){flashes[i].ev._flash=flashes[i].t;flashes.splice(i,1);}
   const cb=currentBeat();
+  const au=activeUnit();
+  for(const L of lay) drawUnit(L,cb,now,L.u===au);
+}
+function drawUnit(L,cb,now,isActive){
+  const {u,cx,cy,R,hole,band,gap}=L;
+  const ui=unitIndex(u);
+  const uAud=!u.mute&&(!state.units.some(x=>x.solo)||u.solo);
+  // frame + label
+  if(state.units.length>1){
+    roundRect(L.x0+6,L.y0+6,L.w-12,L.h-12,12);
+    g2.lineWidth=isActive?2:1;g2.strokeStyle=isActive?'rgba(76,201,240,0.7)':'rgba(255,255,255,0.07)';g2.stroke();
+  }
+  g2.textAlign='left';g2.textBaseline='top';
+  g2.font='700 16px system-ui,"Segoe UI",sans-serif';
+  g2.fillStyle=isActive?'#4cc9f0':'#9aa4b2';
+  const tag=(u.mute?'  MUTE':'')+(u.solo?'  SOLO':'');
+  g2.fillText(`UNIT ${ui+1}${tag}`,L.x0+20,L.y0+18);
+  g2.font='500 14px system-ui,sans-serif';g2.fillStyle='#6f7a89';
+  g2.fillText(u.rings.map(r=>r.steps).join(' · ')+' steps',L.x0+20,L.y0+40);
 
-  state.rings.forEach((r,i)=>{
+  u.rings.forEach((r,i)=>{
     const ro=R-i*band,ri=ro-band+gap,rm=(ro+ri)/2;
     const pad=1.6/ri;
     const ph=cb===null?null:(((cb/r.beats)%1)+1)%1;
     const curStep=ph===null?-1:Math.floor(ph*r.steps);
-    const dimmed=!audible(r);
+    const dimmed=!audible(r,u);
     for(let s=0;s<r.steps;s++){
       const a0=ang(s/r.steps)+pad,a1=ang((s+1)/r.steps)-pad;
       const ev=getEvent(r,s);
@@ -357,11 +434,9 @@ function draw(){
       if(isSel){g2.lineWidth=2.5;g2.strokeStyle='#fff';g2.stroke();}
       else if(isHov){g2.lineWidth=1.5;g2.strokeStyle='rgba(255,255,255,0.45)';g2.stroke();}
       if(ev){
-        // gate arc along the inner edge
         const ge=ang((s+Math.max(0.05,ev.dur))/r.steps)-pad;
         g2.beginPath();g2.arc(cx,cy,ri+3,a0,ge);
         g2.lineWidth=3;g2.strokeStyle=hexA(r.color,dimmed?0.35:0.95);g2.stroke();
-        // label or dots
         const label=chordName(ev.notes);
         const fs=clamp(band*0.3,13,17);
         g2.font=`600 ${fs}px system-ui,"Segoe UI",sans-serif`;
@@ -389,33 +464,40 @@ function draw(){
     }
   });
 
-  // centre
+  // centre: play/stop (global) + unit number
   g2.beginPath();g2.arc(cx,cy,hole-10,0,Math.PI*2);
-  g2.fillStyle=hover&&hover.center?'#262d38':'#1c2129';g2.fill();
+  g2.fillStyle=hover&&hover.center&&hover.unitId===u.id?'#262d38':'#1c2129';g2.fill();
   g2.lineWidth=1.5;g2.strokeStyle='#2f3744';g2.stroke();
-  g2.fillStyle='#e6e9ee';g2.textAlign='center';g2.textBaseline='middle';
-  g2.font=`700 ${clamp(hole*0.36,18,34)}px system-ui,sans-serif`;
+  g2.fillStyle=uAud?'#e6e9ee':'#5c6573';g2.textAlign='center';g2.textBaseline='middle';
+  g2.font=`700 ${clamp(hole*0.36,16,32)}px system-ui,sans-serif`;
   g2.fillText(playing?'■':'▶',cx,cy-hole*0.14);
   g2.font=`500 ${clamp(hole*0.2,13,18)}px system-ui,sans-serif`;
-  g2.fillStyle='#9aa4b2';g2.fillText(state.bpm+' BPM',cx,cy+hole*0.3);
+  g2.fillStyle='#9aa4b2';g2.fillText(playing?state.bpm+' BPM':'Unit '+(ui+1),cx,cy+hole*0.3);
 
-  if(!state.rings.length){
-    g2.fillStyle='#9aa4b2';g2.font='16px system-ui,sans-serif';
-    g2.fillText('No rings — press “+ Ring”',cx,cy+hole+30);
+  if(!u.rings.length){
+    g2.fillStyle='#9aa4b2';g2.font='15px system-ui,sans-serif';
+    g2.fillText('No rings — select this unit and press “+ Ring”',cx,cy+hole+26);
   }
 }
 
 /* ================= canvas interaction ================= */
 function hit(x,y){
   if(!lay) return null;
-  const dx=x-lay.cx,dy=y-lay.cy,d=Math.hypot(dx,dy);
-  if(d<lay.hole-10) return {center:true};
-  if(d>lay.R||!state.rings.length) return null;
-  const i=Math.floor((lay.R-d)/lay.band);
-  if(i<0||i>=state.rings.length) return null;
-  const r=state.rings[i];
+  const L=lay.find(l=>x>=l.x0&&x<l.x0+l.w&&y>=l.y0&&y<l.y0+l.h);
+  if(!L) return null;
+  const u=L.u,base={unitId:u.id};
+  const dx=x-L.cx,dy=y-L.cy,d=Math.hypot(dx,dy);
+  if(d<L.hole-10) return {...base,center:true};
+  if(d>L.R||!u.rings.length) return base;
+  const i=Math.floor((L.R-d)/L.band);
+  if(i<0||i>=u.rings.length) return base;
+  const r=u.rings[i];
   let p=(Math.atan2(dy,dx)+Math.PI/2)/(2*Math.PI);p=((p%1)+1)%1;
-  return {ringId:r.id,step:Math.floor(p*r.steps)%r.steps};
+  return {...base,ringId:r.id,step:Math.floor(p*r.steps)%r.steps};
+}
+function activate(unitId){
+  if(unitId===active) return;
+  active=unitId;buildCards();renderEditor();
 }
 let paint=null; // {mode:'add'|'erase', ringId, last}
 cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -423,7 +505,9 @@ cv.addEventListener('pointerdown',e=>{
   if(document.activeElement&&document.activeElement!==document.body) document.activeElement.blur();
   const h=hit(e.offsetX,e.offsetY);
   if(!h) return;
+  activate(h.unitId);
   if(h.center){if(e.button===0) toggle();return;}
+  if(h.ringId===undefined) return;
   const r=ringById(h.ringId);
   cv.setPointerCapture(e.pointerId);
   if(e.button===2){
@@ -440,7 +524,7 @@ cv.addEventListener('pointerdown',e=>{
 cv.addEventListener('pointermove',e=>{
   const h=hit(e.offsetX,e.offsetY);
   hover=h;updateStatus();
-  if(!paint||!h||h.center||h.ringId!==paint.ringId||h.step===paint.last) return;
+  if(!paint||!h||h.ringId===undefined||h.ringId!==paint.ringId||h.step===paint.last) return;
   const r=ringById(h.ringId);paint.last=h.step;
   if(paint.mode==='erase'){removeEvent(r,h.step);edited(r,null,false);}
   else if(!getEvent(r,h.step)){r.events.push(brushEvent(r,h.step));sel={ringId:r.id,step:h.step};renderEditor();save();}
@@ -449,7 +533,7 @@ cv.addEventListener('pointerup',()=>{paint=null;});
 cv.addEventListener('pointerleave',()=>{hover=null;updateStatus();});
 cv.addEventListener('wheel',e=>{
   const h=hit(e.offsetX,e.offsetY);
-  if(!h||h.center) return;
+  if(!h||h.ringId===undefined) return;
   const r=ringById(h.ringId),ev=getEvent(r,h.step);
   if(!ev) return;
   e.preventDefault();
@@ -542,7 +626,7 @@ for(const [id,key] of [['edVel','vel'],['edDur','dur'],['edProb','prob']]){
 }
 function renderEditor(){
   const r=selRing(),ev=selEvent();
-  $('#edTitle').textContent=r?`Ring ${ringIndex(r)+1} · step ${sel.step+1}/${r.steps}`:'No step selected — click a cell';
+  $('#edTitle').textContent=r?`Unit ${unitIndex(unitOf(r))+1} · Ring ${ringIndex(r)+1} · step ${sel.step+1}/${r.steps}`:'No step selected — click a cell';
   $('#edChord').textContent=ev?`${chordName(ev.notes)}   (${ev.notes.map(noteName).join(' ')})`:(r?'empty — click keys to add notes':'');
   const on=new Set(ev?ev.notes:[]);
   for(const k of document.querySelectorAll('#kb [data-n]')){
@@ -564,8 +648,15 @@ const sliderToCut=v=>Math.round(80*Math.pow(200,v/100));
 const fmtHz=f=>f>=1000?(f/1000).toFixed(1)+'k':f+'';
 function buildCards(){
   const box=$('#rings');box.innerHTML='';cards.clear();
-  state.rings.forEach((r,i)=>box.appendChild(card(r,i)));
-  $('#addRing').disabled=state.rings.length>=MAX_RINGS;
+  const u=activeUnit();
+  $('#unitTitle').textContent=u?'Unit '+(unitIndex(u)+1):'No unit';
+  $('#uMute').classList.toggle('on',!!(u&&u.mute));
+  $('#uSolo').classList.toggle('on',!!(u&&u.solo));
+  for(const id of ['uMute','uSolo','uDup','uDel']) $('#'+id).disabled=!u;
+  $('#uDup').disabled=!u||state.units.length>=MAX_UNITS;
+  $('#addUnit').disabled=state.units.length>=MAX_UNITS;
+  $('#addRing').disabled=!u||u.rings.length>=MAX_RINGS;
+  if(u) u.rings.forEach((r,i)=>box.appendChild(card(r,i)));
 }
 function card(r,i){
   const el=document.createElement('div');el.className='card';el.style.borderLeftColor=r.color;
@@ -606,7 +697,7 @@ function card(r,i){
     if(a==='mute') r.mute=!r.mute;
     if(a==='solo') r.solo=!r.solo;
     if(a==='del'){
-      state.rings=state.rings.filter(x=>x!==r);
+      const u=unitOf(r);u.rings=u.rings.filter(x=>x!==r);
       if(sel&&sel.ringId===r.id) sel=null;
       if(buses.has(r.id)){buses.get(r.id).disconnect();buses.delete(r.id);}
       buildCards();renderEditor();save();return;
@@ -647,11 +738,35 @@ $('#master').addEventListener('input',e=>{state.master=+e.target.value;if(master
 $('#play').onclick=toggle;
 function updatePlay(){const b=$('#play');b.textContent=playing?'■ Stop':'▶ Play';b.classList.toggle('on',playing);}
 $('#addRing').onclick=()=>{
-  if(state.rings.length>=MAX_RINGS) return;
+  const u=activeUnit();
+  if(!u||u.rings.length>=MAX_RINGS) return;
   const r=makeRing({steps:8,beats:4,wave:'square',cutoff:2500,volume:0.5,brush:{notes:[60],vel:100,dur:1,prob:100}});
-  r.color=PALETTE[state.rings.length%PALETTE.length];
-  state.rings.push(r);buildCards();save();
+  r.color=PALETTE[(u.rings.length+unitIndex(u)*2)%PALETTE.length];
+  u.rings.push(r);buildCards();save();
 };
+$('#addUnit').onclick=()=>{
+  if(state.units.length>=MAX_UNITS) return;
+  const u=makeUnit();state.units.push(u);
+  active=u.id;$('#addRing').disabled=false;
+  buildCards();$('#addRing').onclick();
+};
+$('#uMute').onclick=()=>{const u=activeUnit();if(u){u.mute=!u.mute;buildCards();save();}};
+$('#uSolo').onclick=()=>{const u=activeUnit();if(u){u.solo=!u.solo;buildCards();save();}};
+$('#uDup').onclick=()=>{
+  const u=activeUnit();if(!u||state.units.length>=MAX_UNITS) return;
+  const nu=cloneUnit(u);state.units.splice(unitIndex(u)+1,0,nu);active=nu.id;buildCards();renderEditor();save();
+};
+$('#uDel').onclick=()=>{
+  const u=activeUnit();if(!u) return;
+  const i=unitIndex(u);
+  for(const r of u.rings) if(buses.has(r.id)){buses.get(r.id).disconnect();buses.delete(r.id);}
+  if(sel&&unitOf(ringById(sel.ringId))===u) sel=null;
+  state.units.splice(i,1);
+  const nx=state.units[Math.min(i,state.units.length-1)];active=nx?nx.id:null;
+  buildCards();renderEditor();save();
+};
+$('#panelBtn').onclick=()=>{const a=$('aside');a.hidden=!a.hidden;$('#panelBtn').classList.toggle('on',!a.hidden);};
+$('#fsBtn').onclick=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});};
 $('#demo').onclick=()=>{if(playing) stop();demo();syncAll();save();};
 $('#save').onclick=()=>{
   const a=document.createElement('a');
@@ -681,6 +796,10 @@ document.addEventListener('keydown',e=>{
     case 'ArrowDown':if(ev){e.preventDefault();transpose(r,ev,e.shiftKey?-12:-1);edited(r,ev);}break;
     case 'Delete':case 'Backspace':if(r){e.preventDefault();clearSel();}break;
     case 'Escape':sel=null;renderEditor();break;
+    case 'p':case 'P':$('#panelBtn').onclick();break;
+    case 'f':case 'F':$('#fsBtn').onclick();break;
+    default:
+      if(/^[1-6]$/.test(e.key)&&!e.ctrlKey&&!e.altKey){const u=state.units[+e.key-1];if(u) activate(u.id);}
   }
 });
 
@@ -690,11 +809,11 @@ function updateStatus(msg){
   if(msg){statusMsg=msg;clearTimeout(statusT);statusT=setTimeout(()=>{statusMsg='';updateStatus();},3000);}
   const el=$('#status');
   if(statusMsg){el.textContent=statusMsg;return;}
-  if(!hover){el.innerHTML='Hover a cell for details.';return;}
-  if(hover.center){el.innerHTML='Click to '+(playing?'stop':'play');return;}
+  if(!hover||(!hover.center&&hover.ringId===undefined)){el.innerHTML='Hover a cell for details.';return;}
+  if(hover.center){el.innerHTML='Click to '+(playing?'stop':'play')+' (all units)';return;}
   const r=ringById(hover.ringId);if(!r) return;
   const ev=getEvent(r,hover.step);
-  el.innerHTML=`<b>Ring ${ringIndex(r)+1}</b> · step ${hover.step+1}/${r.steps} · loop ${r.beats} beats`+
+  el.innerHTML=`<b>Unit ${unitIndex(unitOf(r))+1} · Ring ${ringIndex(r)+1}</b> · step ${hover.step+1}/${r.steps} · loop ${r.beats} beats`+
     (ev?` · <b>${chordName(ev.notes)}</b> (${ev.notes.map(noteName).join(' ')}) · vel ${ev.vel} · gate ${ev.dur} · prob ${ev.prob}%`:' · empty');
 }
 
@@ -707,7 +826,7 @@ function syncAll(){
 }
 (function boot(){
   let ok=false;
-  try{const s=localStorage.getItem(STORE_KEY);if(s){loadData(JSON.parse(s));ok=true;}}catch(e){}
+  try{const s=localStorage.getItem(STORE_KEY)||localStorage.getItem(OLD_STORE_KEY);if(s){loadData(JSON.parse(s));ok=true;}}catch(e){}
   if(!ok) demo();
   syncAll();buildKeyboard();updatePlay();resize();
   requestAnimationFrame(draw);
