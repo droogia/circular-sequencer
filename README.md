@@ -1,11 +1,11 @@
 # Circular Sequencer
 
 A polyphonic step sequencer laid out as concentric rings, in a single self-contained HTML file.
-Up to six sequencer **units** (circles) run side by side on one shared clock, each with its own rings and step counts.
-Each ring is an independent loop with its own step count and length, so polyrhythms show up
-directly on the circle. Each step can hold a single note or a full chord.
+Up to six sequencer **units** (discs) run side by side on one shared clock, each with its own rings.
+Every ring is an independent loop with its own step count and length, so polyrhythms show up
+directly on the disc. A ring plays a single synth note, a synth chord, or a drum sound per step.
 
-**Version:** v1.3.1
+**Version:** v2.0
 
 ## Usage
 
@@ -15,61 +15,72 @@ Or download `index.html` and open it locally in Chrome or Edge. Nothing to insta
 
 | Action | Effect |
 |---|---|
-| Click an empty cell | Stamp the ring's brush (the last chord edited on that ring) |
+| Space / **Play all** | Start / stop the clock and every unit |
+| Click the centre of a disc / Shift+1–6 | Start / stop only that unit; it joins in sync at the current global position |
+| Drag a disc by its title bar | Move the unit to another place in the grid |
+| Tiny **M** / **S** on a disc | Unit mute / solo |
+| Click an empty cell | Stamp the ring's brush (the last note, chord or hit edited on that ring) |
 | Click a filled cell | Select it for editing |
 | Drag | Paint the brush along the ring |
 | Right-click / right-drag | Erase |
-| Mouse wheel on a cell | Transpose by a semitone (Shift: octave) |
-| Space / click the centre | Play / stop |
+| Mouse wheel on a cell | Transpose by a semitone (Shift: octave); on drum rings: velocity |
 | ← → | Move the selection |
-| ↑ ↓ | Transpose the selection (Shift: octave) |
+| ↑ ↓ | Transpose (Shift: octave); on drum rings: velocity |
 | Del | Clear the selected step |
 | Esc | Deselect |
 | 1–6 | Select unit |
 | P | Show / hide side panel |
 | F | Full screen |
 
+A running unit has a dark green centre. While the clock runs, stopped units show a faint playhead,
+so you can see where they will come in.
+
+### Demos
+Eight demos, each using all six units: Techno, Deep House, Synthwave, Boom Bap, Ambient,
+Drum & Bass, Bossa Nova, Afrobeat 12/8. Pick one from **Load demo…** (it replaces the current pattern).
+
+### Ring types
+- **Synth · note** — one note per step, monophonic (each note cuts the previous one).
+- **Synth · chord** — any number of notes per step; chord presets and inversions in the step editor.
+- **Drum** — one drum sound per ring: kick, snare, closed/open hat, clap, low/high tom, rimshot,
+  cowbell, crash. Synthesized, with per-ring Tune and Decay. Uses General MIDI note numbers (ready for MIDI channel 10).
+
+Switching a ring's type is non-destructive: the stored notes are kept.
+
 ### Step editor
-- Mini keyboard (3 octaves, shiftable): click keys to toggle notes in the selected step's chord.
-- Chord presets (maj, min, 7, maj7, m7, sus2, sus4, dim, aug, 5, 8va) built on the lowest note.
-- Inversions, transpose, velocity, gate length (in steps) and probability per step.
+- Mini keyboard (3 octaves, shiftable): sets the note (note rings) or toggles chord notes (chord rings).
+- Chord presets built on the lowest note, inversions, transpose, velocity, gate length (in steps), probability.
 
-### Units
-- Up to 6 circles, auto-arranged in the grid that gives the largest circles (3×2 for six).
-- All units share the global clock and downbeat; click a unit (or press 1–6) to edit it in the side panel.
-- Each unit is either **Synth** (chords, preview synth) or **Drums** (one drum sound per ring).
-- Tiny **M** / **S** buttons on each disc for unit mute / solo.
-- Per unit: type, number of concentric rings (1–8; extra rings are added inside, reducing removes the innermost), mute, solo, duplicate, delete.
-
-### Drums
-- Kit: kick, snare, closed/open hat, clap, low/high tom, rimshot, cowbell, crash — synthesized, with per-ring Tune and Decay.
-- Drum sounds use General MIDI note numbers, ready for MIDI channel 10.
-- On drum rings the mouse wheel and ↑/↓ change velocity instead of pitch.
-- Switching a unit between Synth and Drums is non-destructive: stored notes are kept.
-
-### Rings
-- Steps (1–64) and loop length in beats (0.25–64), independent per ring.
-- Preview synth per ring: waveform, volume, low-pass cutoff and resonance, attack, release.
-- Mute / solo, Euclidean fill, rotate, clear. Up to 8 rings.
+### Units and rings
+- Up to 6 units, auto-arranged in the grid that gives the largest discs (3×2 for six).
+- Per unit: number of rings (1–8; extra rings are added inside, reducing removes the innermost), mute, solo, duplicate, delete.
+- Per ring: type, steps (1–64), loop length in beats (0.25–64), volume, sound settings, mute / solo,
+  Euclidean fill, rotate, clear.
 
 ### Saving
 The pattern autosaves to the browser's local storage. **Save JSON** / **Load JSON** move patterns between machines.
+Files from v1.x load automatically (unit types become ring types).
 
 ## How it works
 - **Data model:** each event stores its position as a phase (0–1) around its ring, plus notes, velocity, gate and probability.
   This keeps the model independent of the step grid and ready for MIDI out and Strudel export.
 - **Timing:** a lookahead scheduler wakes every 25 ms and schedules everything in the next 120 ms on the audio clock.
-  A global beat counter keeps every ring aligned to the same downbeat and makes BPM changes smooth.
-- **Sound:** built-in WebAudio preview synth (oscillator → low-pass filter with a short envelope → amp envelope), through a master compressor.
+  One global beat counter drives every unit, so units started at different times stay aligned.
+- **Sound:** built-in WebAudio preview synth (oscillator → low-pass filter with a short envelope → amp envelope)
+  and a synthesized drum kit, through a master compressor.
 
 ## Roadmap
-- MIDI output via the Web MIDI API (per-ring channel, hardware synths / loopMIDI)
+- Songs: patterns (snapshots of the six units) chained into an arrangement
+- MIDI output via the Web MIDI API (per-unit port/channel, hardware synths / loopMIDI)
 - MIDI clock out / sync
 - Strudel export
+- Per-unit tempo ratio
 - Off-grid (unquantized) note placement
-- Per-unit tempo ratio and start/stop
+- Undo
 
 ## Changelog
+- **v2.0** — Per-unit start/stop in sync with the global clock; Play all; draggable units; ring types
+  (Synth · note, Synth · chord, Drum) replace unit types; 8 six-unit demos; green centre while running.
 - **v1.3.1** — Main file renamed to `index.html` for GitHub Pages.
 - **v1.3** — Synth/Drums unit type with a built-in drum kit; tiny mute/solo buttons on each disc; demo gains a drum unit.
 - **v1.2** — Rings count per unit, set directly from the unit header.
