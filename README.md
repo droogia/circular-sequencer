@@ -6,7 +6,7 @@ Every ring is an independent loop with its own step count and length, so polyrhy
 directly on the disc. A ring plays a single synth note, a synth chord, or a drum sound per step.
 Each unit holds up to eight patterns (A–H), and a **song** chains them into sections.
 
-**Version:** v3.0
+**Version:** v3.0.1
 
 ## Usage
 
@@ -95,6 +95,7 @@ Files from older versions load automatically (single patterns become pattern A; 
 - Undo
 
 ## Changelog
+- **v3.0.1** — Rings whose cells are too narrow for upright note names show them radially (whole ring), instead of dots.
 - **v3.0** — Patterns A–H per unit with queued switching (next bar or end of unit loop); Song mode with
   section grid, song strip, loop and jump; example songs for all eight styles.
 - **v2.0** — Per-unit start/stop in sync with the global clock; Play all; draggable units; ring types

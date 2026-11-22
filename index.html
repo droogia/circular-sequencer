@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Circular Sequencer v3.0</title>
+<title>Circular Sequencer v3.0.1</title>
 <style>
 :root{--bg:#0e1013;--panel:#161a20;--panel2:#1f252e;--line:#2c333e;--txt:#e6e9ee;--dim:#9aa4b2;--acc:#4cc9f0}
 *{box-sizing:border-box}
@@ -113,7 +113,7 @@ h2{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)
 </head>
 <body>
 <header>
-  <h1>CIRCULAR SEQUENCER <span>v3.0</span></h1>
+  <h1>CIRCULAR SEQUENCER <span>v3.0.1</span></h1>
   <button id="play" class="play" title="Start / stop all units (Space)">▶ Play all</button>
   <div class="grp">BPM <input type="number" id="bpm" min="20" max="300" step="1"><input type="range" id="bpmR" min="20" max="300" step="1"></div>
   <div class="grp">Master <input type="range" id="master" min="0" max="1" step="0.01"></div>
@@ -817,6 +817,15 @@ function drawUnit(L,cb,now,isActive){
     const ph=cb===null?null:(((cb/r.beats)%1)+1)%1;
     const curStep=ph===null||!run?-1:Math.floor(ph*r.steps);
     const dimmed=!audible(r,u);
+    // Label layout, decided per ring: upright if every label fits across its cell, otherwise radial
+    // (text along the ring's width) for the whole ring; dots only if even that does not fit.
+    const fs0=clamp(band*0.3,13,17);
+    g2.font=`600 ${fs0}px system-ui,"Segoe UI",sans-serif`;
+    let maxW=0;for(const ev of r.events) maxW=Math.max(maxW,g2.measureText(cellLabel(r,ev)).width);
+    const cellW=(2*Math.PI/r.steps-2*pad)*rm;
+    const radial=band<26||maxW>cellW*0.92;
+    const fsR=Math.min(fs0,cellW*0.85);
+    const radialOk=radial&&fsR>=11&&maxW*fsR/fs0<=(ro-ri)-8;
     for(let s=0;s<r.steps;s++){
       const a0=ang(s/r.steps)+pad,a1=ang((s+1)/r.steps)-pad;
       const ev=getEvent(r,s);
@@ -838,13 +847,14 @@ function drawUnit(L,cb,now,isActive){
         const ge=ang((s+(r.kind==='drum'?0.25:Math.max(0.05,ev.dur)))/r.steps)-pad;
         g2.beginPath();g2.arc(cx,cy,ri+3,a0,ge);
         g2.lineWidth=3;g2.strokeStyle=hexA(r.color,dimmed?0.35:0.95);g2.stroke();
-        const label=cellLabel(r,ev),fs=clamp(band*0.3,13,17);
-        g2.font=`600 ${fs}px system-ui,"Segoe UI",sans-serif`;
-        const tw=g2.measureText(label).width,cellLen=(a1-a0)*rm,am=(a0+a1)/2;
-        if(band>=26&&tw<cellLen*0.92){
+        const label=cellLabel(r,ev),am=(a0+a1)/2;
+        if(!radial||radialOk){
           g2.save();g2.fillStyle='#fff';g2.shadowColor='rgba(0,0,0,0.85)';g2.shadowBlur=4;
           g2.textAlign='center';g2.textBaseline='middle';
-          g2.fillText(label,cx+Math.cos(am)*rm,cy+Math.sin(am)*rm);g2.restore();
+          g2.translate(cx+Math.cos(am)*rm,cy+Math.sin(am)*rm);
+          if(radial){g2.font=`600 ${fsR}px system-ui,"Segoe UI",sans-serif`;g2.rotate(Math.cos(am)<0?am+Math.PI:am);}   // keep text readable on the left half
+          else g2.font=`600 ${fs0}px system-ui,"Segoe UI",sans-serif`;
+          g2.fillText(label,0,0);g2.restore();
         }else{
           const n=r.kind==='chord'?ev.notes.length:1,span=(ro-ri)-10;
           g2.fillStyle='rgba(255,255,255,0.9)';
