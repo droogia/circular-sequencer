@@ -4,8 +4,9 @@ A polyphonic step sequencer laid out as concentric rings, in a single self-conta
 Up to six sequencer **units** (discs) run side by side on one shared clock, each with its own rings.
 Every ring is an independent loop with its own step count and length, so polyrhythms show up
 directly on the disc. A ring plays a single synth note, a synth chord, or a drum sound per step.
+Each unit holds up to eight patterns (A–H), and a **song** chains them into sections.
 
-**Version:** v2.0
+**Version:** v3.0
 
 ## Usage
 
@@ -18,6 +19,7 @@ Or download `index.html` and open it locally in Chrome or Edge. Nothing to insta
 | Space / **Play all** | Start / stop the clock and every unit |
 | Click the centre of a disc / Shift+1–6 | Start / stop only that unit; it joins in sync at the current global position |
 | Drag a disc by its title bar | Move the unit to another place in the grid |
+| **A–H** on a disc (or in the panel) | Choose the unit's pattern; while playing the change is queued (blinking amber) |
 | Tiny **M** / **S** on a disc | Unit mute / solo |
 | Click an empty cell | Stamp the ring's brush (the last note, chord or hit edited on that ring) |
 | Click a filled cell | Select it for editing |
@@ -35,9 +37,24 @@ Or download `index.html` and open it locally in Chrome or Edge. Nothing to insta
 A running unit has a dark green centre. While the clock runs, stopped units show a faint playhead,
 so you can see where they will come in.
 
-### Demos
-Eight demos, each using all six units: Techno, Deep House, Synthwave, Boom Bap, Ambient,
-Drum & Bass, Bossa Nova, Afrobeat 12/8. Pick one from **Load demo…** (it replaces the current pattern).
+### Patterns
+- Each unit has 8 pattern slots, A–H. A pattern is the unit's complete set of rings (notes and sounds).
+- Clicking an empty slot creates a pattern with the same rings and no notes; **Copy to next** duplicates the current one.
+- While playing, a change waits for the next bar — or, with **Switch at loop end** ticked,
+  for the end of the unit's loop (its longest ring).
+
+### Song mode
+- Switch **Pattern / Song** in the header. The song is a grid: one row per section, one column per unit,
+  each cell a pattern letter or "–" (silent), plus the section length in bars. One tempo per song.
+- Space plays the song from the start section (▶ in the grid, or click a section in the strip below the discs).
+  Clicking a section while playing jumps there at the next bar. **Loop** repeats the song.
+- Section changes are scheduled on the audio clock, so they land exactly on the bar.
+- Rings keep flowing across sections: odd-length loops (5, 7, 9 steps…) do not restart.
+
+### Example songs
+Eight example songs, each using all six units with arrangement sections (intro, fills, breaks, outro):
+Techno, Deep House, Synthwave, Boom Bap, Ambient, Drum & Bass, Bossa Nova, Afrobeat 12/8.
+Pick one from **Load example song…** (it replaces everything).
 
 ### Ring types
 - **Synth · note** — one note per step, monophonic (each note cuts the previous one).
@@ -59,7 +76,7 @@ Switching a ring's type is non-destructive: the stored notes are kept.
 
 ### Saving
 The pattern autosaves to the browser's local storage. **Save JSON** / **Load JSON** move patterns between machines.
-Files from v1.x load automatically (unit types become ring types).
+Files from older versions load automatically (single patterns become pattern A; unit types become ring types).
 
 ## How it works
 - **Data model:** each event stores its position as a phase (0–1) around its ring, plus notes, velocity, gate and probability.
@@ -70,7 +87,6 @@ Files from v1.x load automatically (unit types become ring types).
   and a synthesized drum kit, through a master compressor.
 
 ## Roadmap
-- Songs: patterns (snapshots of the six units) chained into an arrangement
 - MIDI output via the Web MIDI API (per-unit port/channel, hardware synths / loopMIDI)
 - MIDI clock out / sync
 - Strudel export
@@ -79,6 +95,8 @@ Files from v1.x load automatically (unit types become ring types).
 - Undo
 
 ## Changelog
+- **v3.0** — Patterns A–H per unit with queued switching (next bar or end of unit loop); Song mode with
+  section grid, song strip, loop and jump; example songs for all eight styles.
 - **v2.0** — Per-unit start/stop in sync with the global clock; Play all; draggable units; ring types
   (Synth · note, Synth · chord, Drum) replace unit types; 8 six-unit demos; green centre while running.
 - **v1.3.1** — Main file renamed to `index.html` for GitHub Pages.
